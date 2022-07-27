@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
+from wtforms import StringField, SubmitField, FloatField
 from wtforms.validators import DataRequired
 import requests
 
@@ -39,10 +39,20 @@ class AddForm(FlaskForm):
     button = SubmitField("Add Movie")
 
 
+class UpdateForm(FlaskForm):
+    rating = FloatField("Your Rating out of 10 e.g 8.0", validators=[DataRequired()])
+    review = StringField("Your Review", validators=[DataRequired()])
+    button = SubmitField("Done")
+
+
 # -------------------- Flask Methods ----------------------------------- #
 @app.route("/")
 def home():
-    all_movies = db.session.query(Movies).all()
+    all_movies = Movies.query.order_by(Movies.rating).all()
+    for i in range(len(all_movies)):
+        all_movies[i].ranking = len(all_movies)-i
+
+    db.session.commit()
     return render_template("index.html", movies=all_movies)
 
 
@@ -73,7 +83,8 @@ def add_movie(movie_id):
     }
     response = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}", params=parameter)
     movie_data = response.json()
-    new_movie = Movies(title=movie_data['original_title'],
+    new_movie = Movies(id=movie_id,
+                       title=movie_data['original_title'],
                        year=movie_data['release_date'].split("-")[0],
                        description=movie_data['overview'],
                        rating=None,
@@ -85,12 +96,20 @@ def add_movie(movie_id):
     db.session.add(new_movie)
     db.session.commit()
 
-    return redirect(url_for('update'))
+    return redirect(url_for('update', movie_id=movie_id))
 
 
-@app.route("/update/<int:movie_id>")
+@app.route("/update/<int:movie_id>", methods=["GET","POST"])
 def update(movie_id):
-    pass
+    form = UpdateForm()
+    if form.validate_on_submit():
+        movie_card_to_update = Movies.query.get(movie_id)
+        movie_card_to_update.rating = form.rating.data
+        movie_card_to_update.review = form.review.data
+        db.session.commit()
+
+        return redirect(url_for('home'))
+    return render_template("edit.html", form=form)
 
 
 @app.route("/<int:movie_id>")
