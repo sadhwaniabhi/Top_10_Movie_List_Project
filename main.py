@@ -14,10 +14,11 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+
 # ------------------- Database table ----------------------------------- #
 class Movies(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200),nullable=False, unique=True)
+    title = db.Column(db.String(200), nullable=False, unique=True)
     year = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(500), nullable=False)
     rating = db.Column(db.Float, nullable=False)
@@ -32,24 +33,37 @@ class Movies(db.Model):
 db.create_all()
 
 
-## ------------------- Form Classes ----------------------------------- #
-
+# ------------------- Form Classes ----------------------------------- #
 class AddForm(FlaskForm):
     title = StringField("TItle", validators=[DataRequired()])
     button = SubmitField("Add Movie")
 
 
-
-
 # -------------------- Flask Methods ----------------------------------- #
 @app.route("/")
 def home():
-    return render_template("index.html")
+    all_movies = db.session.query(Movies).all()
+    return render_template("index.html", movies=all_movies)
 
 
 @app.route("/add_movie")
 def add():
     form = AddForm()
+    pass
+
+
+@app.route("/update/<int:movie_id>")
+def update(movie_id):
+    pass
+
+
+@app.route("/<int:movie_id>")
+def delete(movie_id):
+    movie_card_to_delete = Movies.query.get(movie_id)
+    db.session.delete(movie_card_to_delete)
+    db.session.commit()
+
+    return redirect(url_for('home'))
 
 
 if __name__ == '__main__':
