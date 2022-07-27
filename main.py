@@ -1,17 +1,11 @@
+import os
 from flask import Flask, render_template, redirect, url_for, request
-from flask_bootstrap import Bootstrap
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, FloatField
-from wtforms.validators import DataRequired
 import requests
+from forms import AddMovieForm, EditForm
+from settings import *
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
-Bootstrap(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movie_list.db'
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-TMDB_API = 'a6bd05b932640e4537e5c724db8a1eaa'
+TMDB_API = os.environ.get('TMDB_API')
 db = SQLAlchemy(app)
 
 
@@ -33,18 +27,6 @@ class Movies(db.Model):
 db.create_all()
 
 
-# ------------------- Form Classes ----------------------------------- #
-class AddForm(FlaskForm):
-    title = StringField("TItle", validators=[DataRequired()])
-    button = SubmitField("Add Movie")
-
-
-class UpdateForm(FlaskForm):
-    rating = FloatField("Your Rating out of 10 e.g 8.0", validators=[DataRequired()])
-    review = StringField("Your Review", validators=[DataRequired()])
-    button = SubmitField("Done")
-
-
 # -------------------- Flask Methods ----------------------------------- #
 @app.route("/")
 def home():
@@ -58,7 +40,7 @@ def home():
 
 @app.route("/add", methods=["GET", "POST"])
 def add():
-    form = AddForm()
+    form = AddMovieForm()
     if form.validate_on_submit():
         movie_name = form.title.data
 
@@ -101,7 +83,7 @@ def add_movie(movie_id):
 
 @app.route("/update/<int:movie_id>", methods=["GET","POST"])
 def update(movie_id):
-    form = UpdateForm()
+    form = EditForm()
     if form.validate_on_submit():
         movie_card_to_update = Movies.query.get(movie_id)
         movie_card_to_update.rating = form.rating.data
