@@ -21,9 +21,9 @@ class Movies(db.Model):
     title = db.Column(db.String(200), nullable=False, unique=True)
     year = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(500), nullable=False)
-    rating = db.Column(db.Float, nullable=False)
+    rating = db.Column(db.Float, nullable=True)
     ranking = db.Column(db.Integer, nullable=True)
-    review = db.Column(db.String(300), nullable=False)
+    review = db.Column(db.String(300), nullable=True)
     img_url = db.Column(db.String(400), nullable=False)
 
     def __repr__(self):
@@ -65,6 +65,27 @@ def add():
 
     return render_template('add.html', form=form)
 
+
+@app.route("/select/<int:movie_id>")
+def add_movie(movie_id):
+    parameter = {
+        'api_key': TMDB_API,
+    }
+    response = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}", params=parameter)
+    movie_data = response.json()
+    new_movie = Movies(title=movie_data['original_title'],
+                       year=movie_data['release_date'].split("-")[0],
+                       description=movie_data['overview'],
+                       rating=None,
+                       ranking=None,
+                       review=None,
+                       img_url=f"https://www.themoviedb.org/t/p/w300_and_h450_bestv2{movie_data['poster_path']}"
+                       )
+
+    db.session.add(new_movie)
+    db.session.commit()
+
+    return redirect(url_for('update'))
 
 
 @app.route("/update/<int:movie_id>")
