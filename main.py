@@ -11,7 +11,7 @@ app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 Bootstrap(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movie_list.db'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
+TMDB_API = 'a6bd05b932640e4537e5c724db8a1eaa'
 db = SQLAlchemy(app)
 
 
@@ -22,7 +22,7 @@ class Movies(db.Model):
     year = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(500), nullable=False)
     rating = db.Column(db.Float, nullable=False)
-    ranking = db.Column(db.Integer, nullable=False)
+    ranking = db.Column(db.Integer, nullable=True)
     review = db.Column(db.String(300), nullable=False)
     img_url = db.Column(db.String(400), nullable=False)
 
@@ -46,10 +46,25 @@ def home():
     return render_template("index.html", movies=all_movies)
 
 
-@app.route("/add_movie")
+@app.route("/add", methods=["GET", "POST"])
 def add():
     form = AddForm()
-    pass
+    if form.validate_on_submit():
+        movie_name = form.title.data
+
+        parameter = {
+            'api_key': TMDB_API,
+            'query': movie_name
+        }
+
+        response = requests.get("https://api.themoviedb.org/3/search/movie", params=parameter)
+        response.raise_for_status()
+        movies_data = response.json()['results']
+
+        return render_template("select.html", movies=movies_data)
+
+    return render_template('add.html', form=form)
+
 
 
 @app.route("/update/<int:movie_id>")
